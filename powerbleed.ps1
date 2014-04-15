@@ -1,4 +1,46 @@
 ﻿<#
+.SYNOPSIS
+
+Exploit the OpenSSL 1.0.1 - 1.0.1f TLS HeartBeat vulnerability.
+Author: Joff Thyer, April 2014
+Concept suggestion by Tim Tomes.
+
+.DESCRIPTION
+
+Sends a malformed TLS heartbeat request as many times as you want to and write
+the returned data into a file.
+
+.PARAMETER Hostname
+
+Either a domain name or IP address can be provided.
+
+.PARAMETER Port
+
+The default TCP port is 443 however any other port may be specified
+here.
+
+.PARAMETER TLSTries
+
+Perform a full TLS connection to the server this many times. The default
+for this parameter is 3. More data may be leaked with continued connect
+attempts.
+
+.PARAMETER Heartbeats
+
+For a single TLS connection, send this many heartbeat requests
+and gather the resulting data.  This defaults to 3 also.
+
+.PARAMETER NoRandomDelay
+
+Disable the random delay between heartbeat requests.  The random
+delay will be calculated between 0 and 1000 milliseconds.
+
+.PARAMETER Timeout
+
+The TCP timeout for a connect request.  Also this is the
+read bytes timeout during the response reading.  This will
+timeout if the server does not support the TLS heartbeat function.
+
 #>
 
 function PowerBleed {
