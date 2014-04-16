@@ -93,6 +93,7 @@ function Test-Heartbleed
             HelpMessage = "IP address or hostname to check",
             ValueFromPipelineByPropertyName = $true,
             Position = 0)]
+            [Alias('IP', 'Host', 'Computer', 'Target')]
             [string[]]$Computername,
 
         [Parameter(
