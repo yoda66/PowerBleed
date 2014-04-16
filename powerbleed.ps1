@@ -103,8 +103,12 @@ function Test-Heartbleed
             [int]$Port=443,
 
         [Parameter(
+<<<<<<< HEAD
             HelpMessage="Number of heartbeats to send",
             ValueFromPipelineByPropertyName = $true)]
+=======
+            HelpMessage="Number of TLS connection attempts to make")]
+>>>>>>> remotes/jsthyer/powerbleed/master
             [int]$TLSTries=3,
 
         [Parameter(
