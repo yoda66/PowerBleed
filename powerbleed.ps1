@@ -102,7 +102,7 @@ function Test-Heartbleed
             [int]$Port=443,
 
         [Parameter(
-            HelpMessage="Number of heartbeats to send")]
+            HelpMessage="Number of TLS connection attempts to make")]
             [int]$TLSTries=3,
 
         [Parameter(
