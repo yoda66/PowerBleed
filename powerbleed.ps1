@@ -10,7 +10,7 @@ Concept suggestion by Tim Tomes.
 Sends a malformed TLS heartbeat request as many times as you want to and write
 the returned data into a file.
 
-.PARAMETER Hostname
+.PARAMETER Computername
 
 Either a domain name or IP address can be provided.
 
@@ -53,7 +53,7 @@ http://packetstormsecurity.com/files/126070/Heartbleed-Proof-Of-Concept.html
 .NOTES
 
 Author: Joff Thyer, April 2014
-Version: 20140414-1501
+Version: 20140416-2242
 Acknowledgments to Tim Tomes.
 
 .EXAMPLE
@@ -208,7 +208,7 @@ function Test-Heartbleed
                 
                         if(!$wait) 
                         {
-                            Write-Verbose -Message "No Response to TLS HeartBeat() request on $($computer). Attepmp $($nt)."
+                            Write-Verbose -Message "No Response to TLS HeartBeat() request on $($computer). Attempt $($nt)."
                             $vulnerable = $false
                             break
                         }
@@ -219,7 +219,7 @@ function Test-Heartbleed
                         }
                         Catch
                         {
-                            Write-Verbose -Message "Could not read response from host $($computer). Attepmp $($nt)."
+                            Write-Verbose -Message "Could not read response from host $($computer). Attempt $($nt)."
                             $vulnerable = $false
                             break
                         }
