@@ -153,7 +153,7 @@ function Test-Heartbleed
             Write-Verbose -Message "Testing $($computer)"
             $IP = [System.Net.Dns]::GetHostByName($computer).AddressList[0].IPAddressToString
             $offset = 0
-            $temp = New-Object -TypeName Byte[] 16384
+            $response = New-Object -TypeName Byte[] 16384
             $buf = New-Object -TypeName Byte[] 8388608
 
             for ($nt = 0; $nt -lt $TLSTries; $nt++) {
@@ -173,7 +173,6 @@ function Test-Heartbleed
                     $stream = $tcp.GetStream()
 
                     # send starttls if we need to
-            
                     if ($STARTTLS) 
                     {
                         # any bytes waiting?  read them...
@@ -181,10 +180,59 @@ function Test-Heartbleed
                         $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
                         $n = $stream.EndRead($awh)
 
-                        # send the STARTTLS command
-                        $st = [System.Text.Encoding]::UTF8.GetBytes("STARTTLS`r`n`r`n")
-                        $stream.Write($st,0,$st.Length)
-                        $n = $stream.Read($temp,0,$temp.length)
+                        if ($Port -eq 21)
+                        {
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("AUTH TLS`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                            if (!$response -match "^234")
+                            {
+                                $vulnerable = $false
+                                break
+                            }
+                        }
+                        elseif ($Port -eq 25)
+                        {
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("EHLO testhost`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                            if (!$response -match "STARTTLS")
+                            {
+                                $vulnerable = $false
+                                break
+                            }
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("STARTTLS`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                        }
+                        elseif ($port -eq 110)
+                        {
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("CAPA`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                            if (!$response -match "STLS")
+                            {
+                                $vulnerable = $false
+                                break
+                            }
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("STLS`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                        }
+                        elseif ($port -eq 143)
+                        {
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("A001 CAPABILITY`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                            if (!$response -match "STARTTLS")
+                            {
+                                $vulnerable = $false
+                                break
+                            }
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("A002 STARTTLS`r`n")
+                            $stream.Write($cmd,0,$cmd.Length)
+                            $n = $stream.Read($response,0,$response.length)
+                        }
                     }
 
                     # send TLS client hello
