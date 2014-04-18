@@ -176,7 +176,7 @@ function Test-Heartbleed
                     if ($STARTTLS) 
                     {
                         # any bytes waiting?  read them...
-                        $awh = $stream.BeginRead($temp,0,$temp.Length,$null,$null)
+                        $awh = $stream.BeginRead($response,0,$response.Length,$null,$null)
                         $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
                         $n = $stream.EndRead($awh)
 
@@ -221,7 +221,7 @@ function Test-Heartbleed
                         }
                         elseif ($port -eq 143)
                         {
-                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("A001 CAPABILITY`r`n")
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("A1 CAPABILITY`r`n")
                             $stream.Write($cmd,0,$cmd.Length)
                             $n = $stream.Read($response,0,$response.length)
                             if (!$response -match "STARTTLS")
@@ -229,7 +229,7 @@ function Test-Heartbleed
                                 $vulnerable = $false
                                 break
                             }
-                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("A002 STARTTLS`r`n")
+                            $cmd = [System.Text.Encoding]::UTF8.GetBytes("A2 STARTTLS`r`n")
                             $stream.Write($cmd,0,$cmd.Length)
                             $n = $stream.Read($response,0,$response.length)
                         }
@@ -239,9 +239,9 @@ function Test-Heartbleed
                     $stream.Write($tls_clienthello,0,$tls_clienthello.Length)
 
                     # get TLS server hello
-                    $n = $stream.Read($temp,0,$temp.length)
+                    $n = $stream.Read($response,0,$response.length)
             
-                    if ( $temp[0] -ne 0x16) 
+                    if ( $response[0] -ne 0x16) 
                     {
                         Throw [System.Exception] "Malformed TLS Server Hello"
                     }
