@@ -19,10 +19,10 @@ Either a domain name or IP address can be provided.
 The default TCP port is 443 however any other port may be specified
 here.
 
-.PARAMETER File
+.PARAMETER WriteFile
 
-The file name that any binary data retrieved will be written to.
-This defaults to "Computername-hbdata.dat" and is always written.
+If this parameter is added, a file named "$Computername-hb.dat" will be written
+containing all of the binary data retrieved for a specific computer host.
 
 .PARAMETER TLSTries
 
@@ -105,8 +105,8 @@ function Test-Heartbleed
             [int]$Port=443,
 
         [Parameter(
-            HelpMessage="File to write binary data to")]
-            [string]$File = "$ComputerName-hbdata.dat",
+            HelpMessage="If this switch is enabled, binary data will be written to a file.")]
+            [switch]$WriteFile = $false,
 
         [Parameter(
             HelpMessage="Number of TLS connection attempts to make")]
@@ -383,8 +383,12 @@ function Test-Heartbleed
                 }
             }
             
-            Write-Verbose -Message "Writing binary data to $File"
-            [IO.File]::WriteAllBytes($File,$buf[0..$offset])
+            if ($WriteFile)
+            {
+                $filename = "$computer-hb.dat"
+                Write-Verbose -Message "Writing binary data to $filename"
+                [IO.File]::WriteAllBytes($filename,$buf[0..$offset])
+            }
             
             $result = New-Object -TypeName psobject -Property @{
                 "Host" = $computer
