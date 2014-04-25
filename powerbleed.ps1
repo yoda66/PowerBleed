@@ -393,6 +393,7 @@ function Test-Heartbleed
             $result = New-Object -TypeName psobject -Property @{
                 "Host" = $computer
                 "Vulnerable" = $vulnerable
+                "Bytes" = ($buf[0..$offset])
                 "Base64" = [System.Convert]::ToBase64String($buf[0..$offset])
                 "String" = [System.Text.Encoding]::ASCII.GetString(($buf[0..$offset]))
             }
