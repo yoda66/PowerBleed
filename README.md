@@ -1,4 +1,24 @@
-﻿<#
+﻿
+## PowerBleed
+
+Powerbleed is a powershell module that allows you to check for the OpenSSL heartbeat
+vulnerability, exploit it and write data to a file if desired.  Powerbleed defaults
+to checking web based SSL/TLS on port 443, however will also support STARTTLS
+based functionality for other protocols such as SMTP, IMAP, POP, and FTP.
+Only a single heartbeat, and TLS connection is attempted by default after
+heartbeat support is ascertained in the initial check.   This can be modified with the TLSTries,
+and Heartbeats parameters.  By default, a random delay is introduced between heartbeats
+which can be disabled if desired also.
+
+Author: Joff Thyer, April-May 2014
+Concept suggestion by Tim Tomes.
+
+## Sponsors
+
+[![Black Hills Information Security](http://www.blackhillsinfosec.com/_images/BHIS-Logo.png)](http://www.blackhillsinfosec.com)
+
+
+<#
 .SYNOPSIS
 
 Exploit the OpenSSL 1.0.1 - 1.0.1f TLS HeartBeat vulnerability.
@@ -124,5 +144,5 @@ Host                    Bytes                        Vulnerable String
 ----                    -----                        ---------- ------
 smtp.domain.tld         {0}                          False
 
-
 #>
+
