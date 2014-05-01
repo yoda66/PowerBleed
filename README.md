@@ -10,8 +10,8 @@ heartbeat support is ascertained in the initial check.   This can be modified wi
 and Heartbeats parameters.  By default, a random delay is introduced between heartbeats
 which can be disabled if desired also.
 
-Author: Joff Thyer, April-May 2014
-Concept suggestion by Tim Tomes.
+**Author: Joff Thyer, April-May 2014
+**Concept suggestion by Tim Tomes.
 
 ## Sponsors
 
