@@ -477,7 +477,6 @@ function Test-Heartbleed
                 "Vulnerable" = $vulnerable
                 "Bytes" = ($buf[0..$offset])
                 "String" = [System.Text.Encoding]::UTF7.GetString(($buf[0..$offset])) -replace '[^\x20-\x7E]*', ''
-                "Offset" = $offset
             }
             $result
 
