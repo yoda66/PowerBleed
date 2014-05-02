@@ -330,7 +330,7 @@ function Test-Heartbleed
         }
 
 
-        # main loop here
+        # MAIN LOOP
         $ErrorActionPreference = "Continue"
         foreach($computer in $Computername)
         {
@@ -343,7 +343,14 @@ function Test-Heartbleed
 
             # check for TLS heartbeat support
             Try {
-                $tcp = _TCPConnect $Timeout
+                Try
+                {
+                    $tcp = _TCPConnect $Timeout
+                }
+                Catch
+                {
+                    continue
+                }
                 $stream = $tcp.GetStream()
 
                 # perform StartTLS if needed.
@@ -389,6 +396,7 @@ function Test-Heartbleed
                     $tcp.close()
                 }
             }
+
 
             $buf.Clear()
             # perform connection attempts
